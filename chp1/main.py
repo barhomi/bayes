@@ -2,9 +2,12 @@
 
 import numpy as np
 import os
+import seaborn
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+
+import seaborn
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -93,11 +96,17 @@ def init_chain(msg_per_day):
     tau = con(0.5, dtype=tf.float32)
     return  [lambda_1, lambda_2, tau]
 
+def plot_samples(samples, title, axe):
+    hist, edges = np.histogram(samples, bins=100)
+    axe.bar(edges[:-1], hist)
+    axe.set_title(title)
+    return axe
+
 def main(argv):
     del argv
     # coin_flips_exp()
-    n_burnin_steps = 5000
-    n_results = 20000
+    n_burnin_steps = 500
+    n_results = 200
 
     initial_chain_state = init_chain(msgs_per_day)
     unconstrained_bijectors = [
@@ -126,9 +135,12 @@ def main(argv):
     [lambda_1_samples, lambda_2_samples, posterior_tau] = samples
     n_days = cast(tf.size(msgs_per_day), 'f')
     tau_samples = tf.floor(posterior_tau * n_days)
-    import ipdb ; ipdb.set_trace()
-    pass
+    samples =[lambda_1_samples, lambda_2_samples, tau_samples]
 
+    fig, axes = plt.subplots(3, 1)
+    for rv_samples, ax, rv_name in zip(samples, axes, ['lambda 1', 'lambda 2', 'tau']):
+        ax = plot_samples(rv_samples.numpy(), '{} distribution'.format(rv_name), ax)
+    plt.show()
 
 if __name__ == '__main__':
     app.run(main)
