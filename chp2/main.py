@@ -11,9 +11,15 @@ import matplotlib.pyplot as plt
 
 from absl import app
 from absl import flags
-import logging as log
+
+import logging
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
+
 import tensorflow as tf
 import tensorflow_probability as tfp
+
+
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 # Function shortcuts
 con = tf.constant
@@ -52,7 +58,7 @@ def build_chain(data: tf.Tensor,
 
     unnormalized_posterior_log_prob = lambda *args: joint_log_prob(data, *args)
 
-    step_size_update_fn = tfp.mcmc.make_simple_step_size_update_policy(num_adaptation_steps=burnin_steps)
+    # step_size_update_fn = tfp.mcmc.make_simple_step_size_update_policy(num_adaptation_steps=burnin_steps)
     # step_size_update_fn = tfp.mcmc.SimpleStepSizeAdaptation(inner_kernel= innernum_adaptation_steps=burnin_steps)
 
     inner_kernel = tfp.mcmc.HamiltonianMonteCarlo(target_log_prob_fn=unnormalized_posterior_log_prob,
@@ -62,8 +68,8 @@ def build_chain(data: tf.Tensor,
                                                   state_gradients_are_stopped=True
                                                   )
 
-    hmc = tfp.mcmc.TransformedTransitionKernel(inner_kernel=inner_kernel,
-                                               bijector=unconstrained_bijectors)
+    kernel = tfp.mcmc.TransformedTransitionKernel(inner_kernel=inner_kernel, bijector=unconstrained_bijectors)
+    hmc = tfp.mcmc.SimpleStepSizeAdaptation(inner_kernel=kernel, num_adaptation_steps=burnin_steps)
 
     return hmc
 
@@ -79,11 +85,12 @@ def sample_from_posterior(hmc,
                                                                kernel=hmc
                                                                )
 
-    acc_rate = tf.reduce_mean(tf.cast(kernel_results.inner_results.is_accepted, dtype=tf.float32)).numpy()
+    acc_rate = tf.reduce_mean(tf.cast( kernel_results.inner_results.inner_results.is_accepted, dtype=tf.float32)).numpy()
     print("Acceptance rate: {:.2f}".format(acc_rate))
     return posterior_prob_A[burnin:]
 
 def show_posterior(post_prob_A: np.ndarray):
+    print(np.histogram(post_prob_A, bins=100))
     plt.hist(post_prob_A, bins=100, histtype='stepfilled')
     plt.show()
 
