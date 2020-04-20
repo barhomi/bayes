@@ -58,9 +58,6 @@ def build_chain(data: tf.Tensor,
 
     unnormalized_posterior_log_prob = lambda *args: joint_log_prob(data, *args)
 
-    # step_size_update_fn = tfp.mcmc.make_simple_step_size_update_policy(num_adaptation_steps=burnin_steps)
-    # step_size_update_fn = tfp.mcmc.SimpleStepSizeAdaptation(inner_kernel= innernum_adaptation_steps=burnin_steps)
-
     inner_kernel = tfp.mcmc.HamiltonianMonteCarlo(target_log_prob_fn=unnormalized_posterior_log_prob,
                                                   num_leapfrog_steps=leapfrog_steps,
                                                   step_size=0.5,
